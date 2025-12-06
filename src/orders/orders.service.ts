@@ -82,7 +82,10 @@ export class OrdersService {
   /**
    * Update an existing order
    */
-  async updateOrder(id: number, updateOrderDto: UpdateOrderDto): Promise<Order> {
+  async updateOrder(
+    id: number,
+    updateOrderDto: UpdateOrderDto,
+  ): Promise<Order> {
     if (!id || id <= 0) {
       throw new BadRequestException('Invalid order ID');
     }
@@ -104,6 +107,33 @@ export class OrdersService {
       }
       throw new InternalServerErrorException(
         'Failed to update order',
+        error.message,
+      );
+    }
+  }
+
+  /**
+   * Delete an order
+   */
+  async deleteOrder(id: number): Promise<{ message: string }> {
+    if (!id || id <= 0) {
+      throw new BadRequestException('Invalid order ID');
+    }
+
+    try {
+      const order = await this.getOrderById(id);
+      await this.ordersRepository.remove(order);
+
+      return { message: `Order with ID ${id} has been deleted successfully` };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to delete order',
         error.message,
       );
     }
