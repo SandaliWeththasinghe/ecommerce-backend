@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   HttpCode,
@@ -14,6 +15,15 @@ import { Order } from './entities/order.entity';
 @Controller('api/orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  /**
+   * GET /api/orders
+   * Get all orders
+   */
+  @Get()
+  async getAllOrders(): Promise<Order[]> {
+    return this.ordersService.getAllOrders();
+  }
 
   /**
    * POST /api/orders

@@ -12,6 +12,22 @@ export class OrdersService {
   ) {}
 
   /**
+   * Get all orders
+   */
+  async getAllOrders(): Promise<Order[]> {
+    try {
+      return await this.ordersRepository.find({
+        order: { createdAt: 'DESC' },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to fetch orders',
+        error.message,
+      );
+    }
+  }
+
+  /**
    * Create a new order
    */
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
