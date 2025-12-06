@@ -3,6 +3,8 @@ import {
   Get,
   Post,
   Body,
+  Param,
+  ParseIntPipe,
   HttpCode,
   HttpStatus,
   UsePipes,
@@ -23,6 +25,15 @@ export class OrdersController {
   @Get()
   async getAllOrders(): Promise<Order[]> {
     return this.ordersService.getAllOrders();
+  }
+
+  /**
+   * GET /api/orders/:id
+   * Get order by ID
+   */
+  @Get(':id')
+  async getOrderById(@Param('id', ParseIntPipe) id: number): Promise<Order> {
+    return this.ordersService.getOrderById(id);
   }
 
   /**

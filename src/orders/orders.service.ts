@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from './entities/order.entity';
@@ -22,6 +27,33 @@ export class OrdersService {
     } catch (error) {
       throw new InternalServerErrorException(
         'Failed to fetch orders',
+        error.message,
+      );
+    }
+  }
+
+  /**
+   * Get order by ID
+   */
+  async getOrderById(id: number): Promise<Order> {
+    if (!id || id <= 0) {
+      throw new BadRequestException('Invalid order ID');
+    }
+
+    try {
+      const order = await this.ordersRepository.findOne({ where: { id } });
+
+      if (!order) {
+        throw new NotFoundException(`Order with ID ${id} not found`);
+      }
+
+      return order;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to fetch order',
         error.message,
       );
     }
