@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
 
 @Injectable()
 export class OrdersService {
@@ -73,6 +74,36 @@ export class OrdersService {
     } catch (error) {
       throw new InternalServerErrorException(
         'Failed to create order',
+        error.message,
+      );
+    }
+  }
+
+  /**
+   * Update an existing order
+   */
+  async updateOrder(id: number, updateOrderDto: UpdateOrderDto): Promise<Order> {
+    if (!id || id <= 0) {
+      throw new BadRequestException('Invalid order ID');
+    }
+
+    try {
+      const order = await this.getOrderById(id);
+
+      if (updateOrderDto.orderDescription) {
+        order.orderDescription = updateOrderDto.orderDescription;
+      }
+
+      return await this.ordersRepository.save(order);
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to update order',
         error.message,
       );
     }
