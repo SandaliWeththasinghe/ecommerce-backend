@@ -13,6 +13,7 @@ describe('OrdersService', () => {
 
   const mockOrderRepository = {
     find: jest.fn(),
+    findAndCount: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
@@ -49,15 +50,47 @@ describe('OrdersService', () => {
   });
 
   describe('getAllOrders', () => {
-    it('should return an array of orders', async () => {
+    it('should return paginated orders with default pagination', async () => {
       const orders = [mockOrder];
-      mockOrderRepository.find.mockResolvedValue(orders);
+      mockOrderRepository.findAndCount.mockResolvedValue([orders, 1]);
 
-      const result = await service.getAllOrders();
+      const result = await service.getAllOrders({});
 
-      expect(result).toEqual(orders);
-      expect(mockOrderRepository.find).toHaveBeenCalledWith({
+      expect(result).toEqual({
+        data: orders,
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+        },
+      });
+      expect(mockOrderRepository.findAndCount).toHaveBeenCalledWith({
         order: { createdAt: 'DESC' },
+        skip: 0,
+        take: 10,
+      });
+    });
+
+    it('should return paginated orders with custom pagination', async () => {
+      const orders = [mockOrder];
+      mockOrderRepository.findAndCount.mockResolvedValue([orders, 25]);
+
+      const result = await service.getAllOrders({ page: 2, limit: 5 });
+
+      expect(result).toEqual({
+        data: orders,
+        meta: {
+          total: 25,
+          page: 2,
+          limit: 5,
+          totalPages: 5,
+        },
+      });
+      expect(mockOrderRepository.findAndCount).toHaveBeenCalledWith({
+        order: { createdAt: 'DESC' },
+        skip: 5,
+        take: 5,
       });
     });
   });

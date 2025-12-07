@@ -9,6 +9,8 @@ import { Repository } from 'typeorm';
 import { Order } from '@/orders/entities/order.entity';
 import { CreateOrderDto } from '@/orders/dto/create-order.dto';
 import { UpdateOrderDto } from '@/orders/dto/update-order.dto';
+import { PaginationQueryDto } from '@/orders/dto/pagination-query.dto';
+import { PaginatedResponse } from '@/orders/interfaces/paginated-response.interface';
 
 @Injectable()
 export class OrdersService {
@@ -18,13 +20,31 @@ export class OrdersService {
   ) {}
 
   /**
-   * Get all orders
+   * Get all orders with pagination
    */
-  async getAllOrders(): Promise<Order[]> {
+  async getAllOrders(
+    paginationQuery: PaginationQueryDto,
+  ): Promise<PaginatedResponse<Order>> {
+    const { page = 1, limit = 10 } = paginationQuery;
+
     try {
-      return await this.ordersRepository.find({
+      const [data, total] = await this.ordersRepository.findAndCount({
         order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
       });
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages,
+        },
+      };
     } catch (error) {
       throw new InternalServerErrorException(
         'Failed to fetch orders',

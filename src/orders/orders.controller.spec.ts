@@ -47,14 +47,41 @@ describe('OrdersController', () => {
   });
 
   describe('getAllOrders', () => {
-    it('should return an array of orders', async () => {
-      const orders = [mockOrder];
-      mockOrdersService.getAllOrders.mockResolvedValue(orders);
+    it('should return paginated orders', async () => {
+      const paginatedResponse = {
+        data: [mockOrder],
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+        },
+      };
+      mockOrdersService.getAllOrders.mockResolvedValue(paginatedResponse);
 
-      const result = await controller.getAllOrders();
+      const result = await controller.getAllOrders({});
 
-      expect(result).toEqual(orders);
-      expect(service.getAllOrders).toHaveBeenCalled();
+      expect(result).toEqual(paginatedResponse);
+      expect(service.getAllOrders).toHaveBeenCalledWith({});
+    });
+
+    it('should return paginated orders with custom pagination', async () => {
+      const paginationQuery = { page: 2, limit: 5 };
+      const paginatedResponse = {
+        data: [mockOrder],
+        meta: {
+          total: 25,
+          page: 2,
+          limit: 5,
+          totalPages: 5,
+        },
+      };
+      mockOrdersService.getAllOrders.mockResolvedValue(paginatedResponse);
+
+      const result = await controller.getAllOrders(paginationQuery);
+
+      expect(result).toEqual(paginatedResponse);
+      expect(service.getAllOrders).toHaveBeenCalledWith(paginationQuery);
     });
   });
 

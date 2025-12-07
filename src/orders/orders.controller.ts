@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   HttpCode,
   HttpStatus,
@@ -15,7 +16,9 @@ import {
 import { OrdersService } from '@/orders/orders.service';
 import { CreateOrderDto } from '@/orders/dto/create-order.dto';
 import { UpdateOrderDto } from '@/orders/dto/update-order.dto';
+import { PaginationQueryDto } from '@/orders/dto/pagination-query.dto';
 import { Order } from '@/orders/entities/order.entity';
+import { PaginatedResponse } from '@/orders/interfaces/paginated-response.interface';
 
 @Controller('api/orders')
 export class OrdersController {
@@ -23,11 +26,14 @@ export class OrdersController {
 
   /**
    * GET /api/orders
-   * Get all orders
+   * Get all orders with pagination
+   * Query params: page (default: 1), limit (default: 10, max: 100)
    */
   @Get()
-  async getAllOrders(): Promise<Order[]> {
-    return this.ordersService.getAllOrders();
+  async getAllOrders(
+    @Query() paginationQuery: PaginationQueryDto,
+  ): Promise<PaginatedResponse<Order>> {
+    return this.ordersService.getAllOrders(paginationQuery);
   }
 
   /**
