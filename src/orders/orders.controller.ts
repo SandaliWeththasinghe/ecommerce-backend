@@ -14,7 +14,13 @@ import {
   ValidationPipe,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { OrdersService } from '@/orders/orders.service';
 import { CreateOrderDto } from '@/orders/dto/create-order.dto';
 import { UpdateOrderDto } from '@/orders/dto/update-order.dto';
@@ -35,7 +41,32 @@ export class OrdersController {
    * Query params: page (default: 1), limit (default: 10, max: 100)
    */
   @Get()
-  @ApiOperation({ summary: 'Get all orders with pagination' })
+  @ApiOperation({
+    summary: 'Get all orders with pagination and search',
+    description:
+      'Retrieve orders with optional search by order ID or description',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search keyword to filter by order ID or order description',
+    example: 'laptop',
+  })
   @ApiResponse({
     status: 200,
     description: 'Returns paginated list of orders',

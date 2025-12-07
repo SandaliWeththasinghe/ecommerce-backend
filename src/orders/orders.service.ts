@@ -29,21 +29,53 @@ export class OrdersService {
   ) {}
 
   /**
-   * Get all orders with pagination and their products
+   * Get all orders with pagination, search, and their products
    */
   async getAllOrders(
     paginationQuery: PaginationQueryDto,
   ): Promise<PaginatedResponse<Order>> {
-    const { page = 1, limit = 10 } = paginationQuery;
+    const { page = 1, limit = 10, search } = paginationQuery;
 
-    this.logger.log(`Fetching orders - Page: ${page}, Limit: ${limit}`);
+    this.logger.log(
+      `Fetching orders - Page: ${page}, Limit: ${limit}, Search: ${search || 'none'}`,
+    );
 
     try {
-      const [orders, total] = await this.ordersRepository.findAndCount({
-        order: { createdAt: 'DESC' },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+      // Build query with search conditions
+      const queryBuilder = this.ordersRepository
+        .createQueryBuilder('orders')
+        .orderBy('orders.createdat', 'DESC')
+        .skip((page - 1) * limit)
+        .take(limit);
+
+      // Add search filter if search term is provided
+      if (search && search.trim()) {
+        const searchTerm = search.trim();
+
+        // Check if search term is a number (for ID search)
+        const isNumeric = /^\d+$/.test(searchTerm);
+
+        if (isNumeric) {
+          // Search by ID or description
+          queryBuilder.where(
+            '(orders.id = :searchId OR LOWER(orders.orderdescription) LIKE LOWER(:searchDesc))',
+            {
+              searchId: parseInt(searchTerm),
+              searchDesc: `%${searchTerm}%`,
+            },
+          );
+        } else {
+          // Search only by description
+          queryBuilder.where(
+            'LOWER(orders.orderdescription) LIKE LOWER(:searchDesc)',
+            {
+              searchDesc: `%${searchTerm}%`,
+            },
+          );
+        }
+      }
+
+      const [orders, total] = await queryBuilder.getManyAndCount();
 
       // Fetch products for each order
       const ordersWithProducts = await Promise.all(
@@ -56,7 +88,7 @@ export class OrdersService {
       const totalPages = Math.ceil(total / limit);
 
       this.logger.log(
-        `Successfully fetched ${ordersWithProducts.length} orders out of ${total} total`,
+        `Successfully fetched ${ordersWithProducts.length} orders out of ${total} total (Search: ${search || 'none'})`,
       );
 
       return {
@@ -70,7 +102,7 @@ export class OrdersService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to fetch orders - Page: ${page}, Limit: ${limit}`,
+        `Failed to fetch orders - Page: ${page}, Limit: ${limit}, Search: ${search}`,
         error.stack,
       );
       throw new InternalServerErrorException(
