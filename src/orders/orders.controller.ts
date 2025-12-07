@@ -12,6 +12,7 @@ import {
   HttpStatus,
   UsePipes,
   ValidationPipe,
+  Logger,
 } from '@nestjs/common';
 import { OrdersService } from '@/orders/orders.service';
 import { CreateOrderDto } from '@/orders/dto/create-order.dto';
@@ -22,6 +23,8 @@ import { PaginatedResponse } from '@/orders/interfaces/paginated-response.interf
 
 @Controller('api/orders')
 export class OrdersController {
+  private readonly logger = new Logger(OrdersController.name);
+
   constructor(private readonly ordersService: OrdersService) {}
 
   /**
@@ -33,6 +36,7 @@ export class OrdersController {
   async getAllOrders(
     @Query() paginationQuery: PaginationQueryDto,
   ): Promise<PaginatedResponse<Order>> {
+    this.logger.log('GET /api/orders - Fetch all orders');
     return this.ordersService.getAllOrders(paginationQuery);
   }
 
@@ -42,6 +46,7 @@ export class OrdersController {
    */
   @Get(':id')
   async getOrderById(@Param('id', ParseIntPipe) id: number): Promise<Order> {
+    this.logger.log(`GET /api/orders/${id} - Fetch order by ID`);
     return this.ordersService.getOrderById(id);
   }
 
@@ -53,6 +58,7 @@ export class OrdersController {
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async createOrder(@Body() createOrderDto: CreateOrderDto): Promise<Order> {
+    this.logger.log('POST /api/orders - Create new order');
     return this.ordersService.createOrder(createOrderDto);
   }
 
@@ -66,6 +72,7 @@ export class OrdersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateOrderDto: UpdateOrderDto,
   ): Promise<Order> {
+    this.logger.log(`PUT /api/orders/${id} - Update order`);
     return this.ordersService.updateOrder(id, updateOrderDto);
   }
 
@@ -78,6 +85,7 @@ export class OrdersController {
   async deleteOrder(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<{ message: string }> {
+    this.logger.log(`DELETE /api/orders/${id} - Delete order`);
     return this.ordersService.deleteOrder(id);
   }
 }

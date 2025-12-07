@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -14,6 +15,8 @@ import { PaginatedResponse } from '@/orders/interfaces/paginated-response.interf
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
@@ -27,6 +30,8 @@ export class OrdersService {
   ): Promise<PaginatedResponse<Order>> {
     const { page = 1, limit = 10 } = paginationQuery;
 
+    this.logger.log(`Fetching orders - Page: ${page}, Limit: ${limit}`);
+
     try {
       const [data, total] = await this.ordersRepository.findAndCount({
         order: { createdAt: 'DESC' },
@@ -35,6 +40,10 @@ export class OrdersService {
       });
 
       const totalPages = Math.ceil(total / limit);
+
+      this.logger.log(
+        `Successfully fetched ${data.length} orders out of ${total} total`,
+      );
 
       return {
         data,
@@ -46,6 +55,10 @@ export class OrdersService {
         },
       };
     } catch (error) {
+      this.logger.error(
+        `Failed to fetch orders - Page: ${page}, Limit: ${limit}`,
+        error.stack,
+      );
       throw new InternalServerErrorException(
         'Failed to fetch orders',
         error.message,
@@ -58,21 +71,27 @@ export class OrdersService {
    */
   async getOrderById(id: number): Promise<Order> {
     if (!id || id <= 0) {
+      this.logger.warn(`Invalid order ID attempted: ${id}`);
       throw new BadRequestException('Invalid order ID');
     }
+
+    this.logger.log(`Fetching order with ID: ${id}`);
 
     try {
       const order = await this.ordersRepository.findOne({ where: { id } });
 
       if (!order) {
+        this.logger.warn(`Order not found - ID: ${id}`);
         throw new NotFoundException(`Order with ID ${id} not found`);
       }
 
+      this.logger.log(`Successfully fetched order - ID: ${id}`);
       return order;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
+      this.logger.error(`Failed to fetch order - ID: ${id}`, error.stack);
       throw new InternalServerErrorException(
         'Failed to fetch order',
         error.message,
@@ -84,14 +103,23 @@ export class OrdersService {
    * Create a new order
    */
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
+    this.logger.log(`Creating new order: ${JSON.stringify(createOrderDto)}`);
+
     try {
       const order = this.ordersRepository.create({
         orderDescription: createOrderDto.orderDescription,
         createdAt: new Date(),
       });
 
-      return await this.ordersRepository.save(order);
+      const savedOrder = await this.ordersRepository.save(order);
+
+      this.logger.log(`Successfully created order - ID: ${savedOrder.id}`);
+      return savedOrder;
     } catch (error) {
+      this.logger.error(
+        `Failed to create order: ${JSON.stringify(createOrderDto)}`,
+        error.stack,
+      );
       throw new InternalServerErrorException(
         'Failed to create order',
         error.message,
@@ -107,8 +135,13 @@ export class OrdersService {
     updateOrderDto: UpdateOrderDto,
   ): Promise<Order> {
     if (!id || id <= 0) {
+      this.logger.warn(`Invalid order ID attempted for update: ${id}`);
       throw new BadRequestException('Invalid order ID');
     }
+
+    this.logger.log(
+      `Updating order - ID: ${id}, Data: ${JSON.stringify(updateOrderDto)}`,
+    );
 
     try {
       const order = await this.getOrderById(id);
@@ -117,7 +150,10 @@ export class OrdersService {
         order.orderDescription = updateOrderDto.orderDescription;
       }
 
-      return await this.ordersRepository.save(order);
+      const updatedOrder = await this.ordersRepository.save(order);
+
+      this.logger.log(`Successfully updated order - ID: ${id}`);
+      return updatedOrder;
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -125,6 +161,7 @@ export class OrdersService {
       ) {
         throw error;
       }
+      this.logger.error(`Failed to update order - ID: ${id}`, error.stack);
       throw new InternalServerErrorException(
         'Failed to update order',
         error.message,
@@ -137,13 +174,17 @@ export class OrdersService {
    */
   async deleteOrder(id: number): Promise<{ message: string }> {
     if (!id || id <= 0) {
+      this.logger.warn(`Invalid order ID attempted for deletion: ${id}`);
       throw new BadRequestException('Invalid order ID');
     }
+
+    this.logger.log(`Deleting order - ID: ${id}`);
 
     try {
       const order = await this.getOrderById(id);
       await this.ordersRepository.remove(order);
 
+      this.logger.log(`Successfully deleted order - ID: ${id}`);
       return { message: `Order with ID ${id} has been deleted successfully` };
     } catch (error) {
       if (
@@ -152,6 +193,7 @@ export class OrdersService {
       ) {
         throw error;
       }
+      this.logger.error(`Failed to delete order - ID: ${id}`, error.stack);
       throw new InternalServerErrorException(
         'Failed to delete order',
         error.message,
