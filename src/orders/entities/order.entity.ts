@@ -3,8 +3,11 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { OrderProductMap } from '@/orders/entities/order-product-map.entity';
+import { Product } from '@/orders/entities/product.entity';
 
 @Entity('orders')
 export class Order {
@@ -29,4 +32,14 @@ export class Order {
   })
   @CreateDateColumn({ name: 'createdat', type: 'timestamp' })
   createdAt: Date;
+
+  @OneToMany(() => OrderProductMap, (orderProductMap) => orderProductMap.order)
+  orderProducts: OrderProductMap[];
+
+  @ApiProperty({
+    description: 'Products associated with this order',
+    type: () => Product,
+    isArray: true,
+  })
+  products?: Product[];
 }

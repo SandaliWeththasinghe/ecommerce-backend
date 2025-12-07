@@ -6,8 +6,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Order } from '@/orders/entities/order.entity';
+import { Product } from '@/orders/entities/product.entity';
+import { OrderProductMap } from '@/orders/entities/order-product-map.entity';
 import { CreateOrderDto } from '@/orders/dto/create-order.dto';
 import { UpdateOrderDto } from '@/orders/dto/update-order.dto';
 import { PaginationQueryDto } from '@/orders/dto/pagination-query.dto';
@@ -20,10 +22,14 @@ export class OrdersService {
   constructor(
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
+    @InjectRepository(Product)
+    private productsRepository: Repository<Product>,
+    @InjectRepository(OrderProductMap)
+    private orderProductMapRepository: Repository<OrderProductMap>,
   ) {}
 
   /**
-   * Get all orders with pagination
+   * Get all orders with pagination and their products
    */
   async getAllOrders(
     paginationQuery: PaginationQueryDto,
@@ -33,20 +39,28 @@ export class OrdersService {
     this.logger.log(`Fetching orders - Page: ${page}, Limit: ${limit}`);
 
     try {
-      const [data, total] = await this.ordersRepository.findAndCount({
+      const [orders, total] = await this.ordersRepository.findAndCount({
         order: { createdAt: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
       });
 
+      // Fetch products for each order
+      const ordersWithProducts = await Promise.all(
+        orders.map(async (order) => {
+          const products = await this.getOrderProducts(order.id);
+          return { ...order, products };
+        }),
+      );
+
       const totalPages = Math.ceil(total / limit);
 
       this.logger.log(
-        `Successfully fetched ${data.length} orders out of ${total} total`,
+        `Successfully fetched ${ordersWithProducts.length} orders out of ${total} total`,
       );
 
       return {
-        data,
+        data: ordersWithProducts,
         meta: {
           total,
           page,
@@ -67,7 +81,7 @@ export class OrdersService {
   }
 
   /**
-   * Get order by ID
+   * Get order by ID with products
    */
   async getOrderById(id: number): Promise<Order> {
     if (!id || id <= 0) {
@@ -85,6 +99,10 @@ export class OrdersService {
         throw new NotFoundException(`Order with ID ${id} not found`);
       }
 
+      // Fetch products for this order
+      const products = await this.getOrderProducts(id);
+      order.products = products;
+
       this.logger.log(`Successfully fetched order - ID: ${id}`);
       return order;
     } catch (error) {
@@ -100,12 +118,16 @@ export class OrdersService {
   }
 
   /**
-   * Create a new order
+   * Create a new order with products
    */
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
     this.logger.log(`Creating new order: ${JSON.stringify(createOrderDto)}`);
 
     try {
+      // Validate that all product IDs exist
+      await this.validateProducts(createOrderDto.productIds);
+
+      // Create the order
       const order = this.ordersRepository.create({
         orderDescription: createOrderDto.orderDescription,
         createdAt: new Date(),
@@ -113,9 +135,18 @@ export class OrdersService {
 
       const savedOrder = await this.ordersRepository.save(order);
 
+      // Create order-product mappings
+      await this.saveOrderProducts(savedOrder.id, createOrderDto.productIds);
+
+      // Fetch the order with products
+      const orderWithProducts = await this.getOrderById(savedOrder.id);
+
       this.logger.log(`Successfully created order - ID: ${savedOrder.id}`);
-      return savedOrder;
+      return orderWithProducts;
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       this.logger.error(
         `Failed to create order: ${JSON.stringify(createOrderDto)}`,
         error.stack,
@@ -144,13 +175,32 @@ export class OrdersService {
     );
 
     try {
-      const order = await this.getOrderById(id);
+      const order = await this.ordersRepository.findOne({ where: { id } });
 
-      if (updateOrderDto.orderDescription) {
-        order.orderDescription = updateOrderDto.orderDescription;
+      if (!order) {
+        throw new NotFoundException(`Order with ID ${id} not found`);
       }
 
-      const updatedOrder = await this.ordersRepository.save(order);
+      // Update order description if provided
+      if (updateOrderDto.orderDescription) {
+        order.orderDescription = updateOrderDto.orderDescription;
+        await this.ordersRepository.save(order);
+      }
+
+      // Update products if provided
+      if (updateOrderDto.productIds && updateOrderDto.productIds.length > 0) {
+        // Validate products
+        await this.validateProducts(updateOrderDto.productIds);
+
+        // Delete existing mappings
+        await this.orderProductMapRepository.delete({ orderId: id });
+
+        // Create new mappings
+        await this.saveOrderProducts(id, updateOrderDto.productIds);
+      }
+
+      // Fetch the updated order with products
+      const updatedOrder = await this.getOrderById(id);
 
       this.logger.log(`Successfully updated order - ID: ${id}`);
       return updatedOrder;
@@ -170,7 +220,7 @@ export class OrdersService {
   }
 
   /**
-   * Delete an order
+   * Delete an order (cascade will delete order-product mappings)
    */
   async deleteOrder(id: number): Promise<{ message: string }> {
     if (!id || id <= 0) {
@@ -181,7 +231,13 @@ export class OrdersService {
     this.logger.log(`Deleting order - ID: ${id}`);
 
     try {
-      const order = await this.getOrderById(id);
+      const order = await this.ordersRepository.findOne({ where: { id } });
+
+      if (!order) {
+        throw new NotFoundException(`Order with ID ${id} not found`);
+      }
+
+      // The ON DELETE CASCADE will automatically delete related OrderProductMap entries
       await this.ordersRepository.remove(order);
 
       this.logger.log(`Successfully deleted order - ID: ${id}`);
@@ -199,5 +255,51 @@ export class OrdersService {
         error.message,
       );
     }
+  }
+
+  /**
+   * Helper method to get products for an order
+   */
+  private async getOrderProducts(orderId: number): Promise<Product[]> {
+    const orderProductMaps = await this.orderProductMapRepository.find({
+      where: { orderId },
+      relations: ['product'],
+    });
+
+    return orderProductMaps.map((map) => map.product);
+  }
+
+  /**
+   * Helper method to validate if products exist
+   */
+  private async validateProducts(productIds: number[]): Promise<void> {
+    const products = await this.productsRepository.find({
+      where: { id: In(productIds) },
+    });
+
+    if (products.length !== productIds.length) {
+      const foundIds = products.map((p) => p.id);
+      const missingIds = productIds.filter((id) => !foundIds.includes(id));
+      throw new BadRequestException(
+        `Products with IDs ${missingIds.join(', ')} do not exist`,
+      );
+    }
+  }
+
+  /**
+   * Helper method to save order-product mappings
+   */
+  private async saveOrderProducts(
+    orderId: number,
+    productIds: number[],
+  ): Promise<void> {
+    const orderProductMaps = productIds.map((productId) =>
+      this.orderProductMapRepository.create({
+        orderId,
+        productId,
+      }),
+    );
+
+    await this.orderProductMapRepository.save(orderProductMaps);
   }
 }
