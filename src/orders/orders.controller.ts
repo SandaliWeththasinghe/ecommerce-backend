@@ -12,10 +12,10 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { OrdersService } from './orders.service';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
-import { Order } from './entities/order.entity';
+import { OrdersService } from '@/orders/orders.service';
+import { CreateOrderDto } from '@/orders/dto/create-order.dto';
+import { UpdateOrderDto } from '@/orders/dto/update-order.dto';
+import { Order } from '@/orders/entities/order.entity';
 
 @Controller('api/orders')
 export class OrdersController {

@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { OrdersService } from './orders.service';
-import { Order } from './entities/order.entity';
+import { OrdersService } from '@/orders/orders.service';
+import { Order } from '@/orders/entities/order.entity';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import { CreateOrderDto } from '@/orders/dto/create-order.dto';
+import { UpdateOrderDto } from '@/orders/dto/update-order.dto';
 
 describe('OrdersService', () => {
   let service: OrdersService;
