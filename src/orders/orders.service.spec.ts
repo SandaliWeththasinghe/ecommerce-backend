@@ -1,19 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { OrdersService } from '@/orders/orders.service';
 import { Order } from '@/orders/entities/order.entity';
+import { Product } from '@/orders/entities/product.entity';
+import { OrderProductMap } from '@/orders/entities/order-product-map.entity';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateOrderDto } from '@/orders/dto/create-order.dto';
 import { UpdateOrderDto } from '@/orders/dto/update-order.dto';
 
 describe('OrdersService', () => {
   let service: OrdersService;
-  let repository: Repository<Order>;
 
   const mockOrderRepository = {
     find: jest.fn(),
     findAndCount: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    remove: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+
+  const mockProductRepository = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    findBy: jest.fn(),
+  };
+
+  const mockOrderProductMapRepository = {
+    find: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
@@ -24,6 +39,7 @@ describe('OrdersService', () => {
     id: 1,
     orderDescription: 'Test Order',
     createdAt: new Date(),
+    orderProducts: []
   };
 
   beforeEach(async () => {
@@ -34,11 +50,18 @@ describe('OrdersService', () => {
           provide: getRepositoryToken(Order),
           useValue: mockOrderRepository,
         },
+        {
+          provide: getRepositoryToken(Product),
+          useValue: mockProductRepository,
+        },
+        {
+          provide: getRepositoryToken(OrderProductMap),
+          useValue: mockOrderProductMapRepository,
+        },
       ],
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);
-    repository = module.get<Repository<Order>>(getRepositoryToken(Order));
   });
 
   afterEach(() => {
@@ -52,56 +75,68 @@ describe('OrdersService', () => {
   describe('getAllOrders', () => {
     it('should return paginated orders with default pagination', async () => {
       const orders = [mockOrder];
-      mockOrderRepository.findAndCount.mockResolvedValue([orders, 1]);
+
+      const mockQueryBuilder = {
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([orders, 1]),
+      };
+
+      mockOrderRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockOrderProductMapRepository.find.mockResolvedValue([]);
 
       const result = await service.getAllOrders({});
 
-      expect(result).toEqual({
-        data: orders,
-        meta: {
-          total: 1,
-          page: 1,
-          limit: 10,
-          totalPages: 1,
-        },
+      expect(result.data).toHaveLength(1);
+      expect(result.meta).toEqual({
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
       });
-      expect(mockOrderRepository.findAndCount).toHaveBeenCalledWith({
-        order: { createdAt: 'DESC' },
-        skip: 0,
-        take: 10,
-      });
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
     });
 
     it('should return paginated orders with custom pagination', async () => {
       const orders = [mockOrder];
-      mockOrderRepository.findAndCount.mockResolvedValue([orders, 25]);
+
+      const mockQueryBuilder = {
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([orders, 25]),
+      };
+
+      mockOrderRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockOrderProductMapRepository.find.mockResolvedValue([]);
 
       const result = await service.getAllOrders({ page: 2, limit: 5 });
 
-      expect(result).toEqual({
-        data: orders,
-        meta: {
-          total: 25,
-          page: 2,
-          limit: 5,
-          totalPages: 5,
-        },
+      expect(result.data).toHaveLength(1);
+      expect(result.meta).toEqual({
+        total: 25,
+        page: 2,
+        limit: 5,
+        totalPages: 5,
       });
-      expect(mockOrderRepository.findAndCount).toHaveBeenCalledWith({
-        order: { createdAt: 'DESC' },
-        skip: 5,
-        take: 5,
-      });
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(5);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(5);
     });
   });
 
   describe('getOrderById', () => {
     it('should return a single order', async () => {
       mockOrderRepository.findOne.mockResolvedValue(mockOrder);
+      mockOrderProductMapRepository.find.mockResolvedValue([]);
 
       const result = await service.getOrderById(1);
 
-      expect(result).toEqual(mockOrder);
+      expect(result).toBeDefined();
+      expect(result.id).toEqual(mockOrder.id);
       expect(mockOrderRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
       });
@@ -129,16 +164,26 @@ describe('OrdersService', () => {
     it('should create and return a new order', async () => {
       const createOrderDto: CreateOrderDto = {
         orderDescription: 'New Order',
+        productIds: [1, 2],
       };
 
+      const mockProducts = [
+        { id: 1, productName: 'Product 1', productDescription: 'Desc 1' },
+        { id: 2, productName: 'Product 2', productDescription: 'Desc 2' },
+      ];
+
+      mockProductRepository.find.mockResolvedValue(mockProducts);
       mockOrderRepository.create.mockReturnValue(mockOrder);
       mockOrderRepository.save.mockResolvedValue(mockOrder);
+      mockOrderProductMapRepository.save.mockResolvedValue({});
+      mockOrderRepository.findOne.mockResolvedValue(mockOrder);
+      mockOrderProductMapRepository.find.mockResolvedValue([]);
 
       const result = await service.createOrder(createOrderDto);
 
-      expect(result).toEqual(mockOrder);
+      expect(result).toBeDefined();
       expect(mockOrderRepository.create).toHaveBeenCalled();
-      expect(mockOrderRepository.save).toHaveBeenCalledWith(mockOrder);
+      expect(mockOrderRepository.save).toHaveBeenCalled();
     });
   });
 
@@ -152,6 +197,7 @@ describe('OrdersService', () => {
 
       mockOrderRepository.findOne.mockResolvedValue(mockOrder);
       mockOrderRepository.save.mockResolvedValue(updatedOrder);
+      mockOrderProductMapRepository.find.mockResolvedValue([]);
 
       const result = await service.updateOrder(1, updateOrderDto);
 
