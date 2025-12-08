@@ -1,98 +1,294 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# E-Commerce Backend API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+A robust and scalable e-commerce backend API built with NestJS, TypeScript, and PostgreSQL.
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This is a production-ready e-commerce backend API that provides comprehensive order management functionality. Built with [NestJS](https://github.com/nestjs/nest) framework, it features TypeORM for database operations, comprehensive logging, pagination support, and interactive API documentation via Swagger.
 
-## Project setup
+## Features
 
-```bash
-$ yarn install
+- **Orders Management**: Complete CRUD operations for orders
+- **Product Management**: Product entities and associations with orders
+- **Pagination**: Built-in pagination support for listing orders
+- **API Documentation**: Interactive Swagger/OpenAPI documentation
+- **Validation**: Request validation using class-validator
+- **Database**: PostgreSQL with TypeORM
+- **Logging**: Comprehensive logging throughout the application
+- **CORS**: Enabled for cross-origin requests
+- **Path Aliases**: Clean imports using @ alias
+- **Testing**: Unit and E2E tests with Jest
+
+## Tech Stack
+
+- **Framework**: NestJS 11.x
+- **Language**: TypeScript 5.x
+- **Database**: PostgreSQL
+- **ORM**: TypeORM 0.3.x
+- **Documentation**: Swagger/OpenAPI
+- **Validation**: class-validator & class-transformer
+- **Testing**: Jest
+- **Package Manager**: Yarn
+
+## Project Structure
+
+```
+src/
+├── orders/              # Orders module
+│   ├── dto/            # Data Transfer Objects
+│   ├── entities/       # Database entities (Order, Product, OrderProductMap)
+│   ├── interfaces/     # TypeScript interfaces
+│   ├── orders.controller.ts
+│   ├── orders.service.ts
+│   └── orders.module.ts
+├── app.module.ts       # Root module
+└── main.ts            # Application entry point
 ```
 
-## Compile and run the project
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js** (v18 or higher)
+- **Yarn** (v1.22 or higher)
+- **PostgreSQL** (v12 or higher)
+
+## Installation
+
+### 1. Clone the repository
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
+git clone <repository-url>
+cd ecommerce-backend
 ```
 
-## Run tests
+### 2. Install dependencies
 
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+yarn install
 ```
 
-## Deployment
+### 3. Database setup
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Create a PostgreSQL database:
 
 ```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
+# Connect to PostgreSQL
+psql -U postgres
+
+# Create database
+CREATE DATABASE ECOMMERCE;
+
+# Exit psql
+\q
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 4. Environment configuration
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+DB_DATABASE=ECOMMERCE
+PORT=5000
+NODE_ENV=development
+```
+
+**Important**: Update the values according to your PostgreSQL configuration.
+
+### 5. Database migrations
+
+The application uses TypeORM with `synchronize: false` for production safety. You'll need to run migrations or set `synchronize: true` temporarily for development.
+
+## Running the Application
+
+### Development mode (recommended for development)
+
+```bash
+yarn start:dev
+```
+
+This starts the application with hot-reload enabled. The server will automatically restart when you make changes to the code.
+
+### Standard development mode
+
+```bash
+yarn start
+```
+
+### Production mode
+
+First, build the application:
+
+```bash
+yarn build
+```
+
+Then run the production build:
+
+```bash
+yarn start:prod
+```
+
+### Debug mode
+
+```bash
+yarn start:debug
+```
+
+## Accessing the Application
+
+Once the application is running, you can access:
+
+- **API Base URL**: `http://localhost:5000`
+- **Swagger Documentation**: `http://localhost:5000/api/docs`
+
+The Swagger UI provides interactive API documentation where you can test all endpoints.
+
+## Available Scripts
+
+### Development
+
+```bash
+yarn start          # Start the application
+yarn start:dev      # Start with watch mode (hot-reload)
+yarn start:debug    # Start in debug mode
+```
+
+### Build
+
+```bash
+yarn build          # Build the application for production
+```
+
+### Code Quality
+
+```bash
+yarn format         # Format code using Prettier
+yarn lint           # Lint and fix code using ESLint
+```
+
+### Testing
+
+```bash
+yarn test           # Run unit tests
+yarn test:watch     # Run tests in watch mode
+yarn test:cov       # Run tests with coverage report
+yarn test:debug     # Run tests in debug mode
+yarn test:e2e       # Run end-to-end tests
+```
+
+## API Endpoints
+
+### Orders
+
+- `GET /orders` - Get all orders (with pagination)
+- `GET /orders/:id` - Get order by ID
+- `POST /orders` - Create a new order
+- `PATCH /orders/:id` - Update an order
+- `DELETE /orders/:id` - Delete an order
+
+**Pagination Example**:
+```
+GET /orders?page=1&limit=10
+```
+
+For detailed API documentation with request/response schemas, visit the Swagger UI at `http://localhost:5000/api/docs`.
+
+## Project Configuration
+
+### TypeORM Configuration
+
+The database connection is configured in [src/app.module.ts](src/app.module.ts):
+
+- Database type: PostgreSQL
+- Synchronize: `false` (for production safety)
+- Entities: Auto-loaded from `**/*.entity.ts`
+
+### Path Aliases
+
+The project uses `@` as a path alias for the `src` directory:
+
+```typescript
+// Instead of: import { OrdersModule } from '../../orders/orders.module';
+// You can use: import { OrdersModule } from '@/orders/orders.module';
+```
+
+### Validation
+
+Global validation is enabled with:
+- `whitelist: true` - Strip properties that don't have decorators
+- `forbidNonWhitelisted: true` - Throw errors if non-whitelisted properties are present
+- `transform: true` - Automatically transform payloads to DTO instances
+
+## Testing
+
+The project includes comprehensive testing:
+
+- **Unit tests**: Testing individual services and controllers
+- **E2E tests**: Testing complete request/response cycles
+- **Coverage reports**: Generated in the `coverage/` directory
+
+Example test run:
+
+```bash
+# Run all unit tests
+yarn test
+
+# Run with coverage
+yarn test:cov
+
+# Run specific test file
+yarn test orders.service.spec.ts
+```
+
+## Troubleshooting
+
+### Database connection issues
+
+If you encounter database connection errors:
+
+1. Verify PostgreSQL is running: `pg_isready`
+2. Check your `.env` file configuration
+3. Ensure the database exists: `psql -U postgres -l`
+4. Verify credentials can connect: `psql -U postgres -d ECOMMERCE`
+
+### Port already in use
+
+If port 5000 is already in use, change the `PORT` in your `.env` file:
+
+```env
+PORT=3000
+```
+
+### Module not found errors
+
+If you see module not found errors after installing dependencies:
+
+```bash
+# Clear node modules and reinstall
+rm -rf node_modules
+yarn install
+```
+
+## Development Guidelines
+
+1. **Code Style**: Follow the existing code style. Run `yarn format` before committing.
+2. **Linting**: Ensure no linting errors with `yarn lint`.
+3. **Testing**: Write tests for new features and ensure all tests pass.
+4. **Commits**: Write clear, descriptive commit messages.
+5. **Type Safety**: Leverage TypeScript's type system fully.
 
 ## Resources
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- [NestJS Documentation](https://docs.nestjs.com)
+- [TypeORM Documentation](https://typeorm.io)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Swagger/OpenAPI Specification](https://swagger.io/specification/)
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED - Private project
