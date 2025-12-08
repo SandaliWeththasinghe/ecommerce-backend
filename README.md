@@ -85,19 +85,64 @@ CREATE DATABASE ECOMMERCE;
 
 ### 4. Environment configuration
 
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the root directory. Below are the environment variable configurations for both local development and production environments.
+
+#### Local Development Configuration (Localhost)
+
+Use this configuration when running the application locally with a PostgreSQL database on your machine:
 
 ```env
+PORT=5000
+
+# Localhost Database Configuration
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=your_password
 DB_DATABASE=ECOMMERCE
-PORT=5000
-NODE_ENV=development
 ```
 
-**Important**: Update the values according to your PostgreSQL configuration.
+#### Production Configuration (Railway)
+
+Use this configuration when deploying to production or connecting to a remote database:
+
+```env
+PORT=5000
+
+# Production Database Configuration (Railway)
+DB_HOST=metro.proxy.rlwy.net
+DB_PORT=49030
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+DB_DATABASE=ECOMMERCE
+```
+
+#### Switching Between Environments
+
+To switch between environments, simply comment/uncomment the appropriate database configuration in your `.env` file:
+
+```env
+PORT=5000
+
+# Local Development (uncomment to use)
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_USERNAME=postgres
+# DB_PASSWORD=your_password
+# DB_DATABASE=ECOMMERCE
+
+# Production (uncomment to use)
+DB_HOST=metro.proxy.rlwy.net
+DB_PORT=49030
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+DB_DATABASE=ECOMMERCE
+```
+
+**Important**:
+- Update the localhost password according to your PostgreSQL configuration
+- Never commit the `.env` file to version control (ensure it's in `.gitignore`)
+- Keep production credentials secure
 
 ### 5. Database migrations
 
